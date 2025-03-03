@@ -13,6 +13,8 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Button;
+use Illuminate\Database\Eloquent\Model;
+
 
 class ClienteResource extends Resource
 {
@@ -121,4 +123,18 @@ class ClienteResource extends Resource
             'edit' => Pages\EditCliente::route('/{record}/edit'),
         ];
     }
+
+
+    public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDeleteAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo Admin puede ver el botón eliminar
+}
 }

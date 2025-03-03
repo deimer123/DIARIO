@@ -9,6 +9,7 @@ use Filament\Tables;
 use Filament\Resources\Resource;
 use Carbon\Carbon;
 
+
 class PlanPagoResource extends Resource
 {
     protected static ?string $model = PlanPago::class;

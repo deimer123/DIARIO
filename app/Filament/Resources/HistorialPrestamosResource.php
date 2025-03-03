@@ -13,6 +13,7 @@ use Carbon\Carbon;
 
 
 
+
 class HistorialPrestamosResource extends Resource
 {
     protected static ?string $model = Prestamo::class;  // 📌 Definir el modelo correctamente

@@ -6,17 +6,6 @@
       'EloquentSerialize' => 'AnourValar\\EloquentSerialize\\Facades\\EloquentSerializeFacade',
     ),
   ),
-  'bezhansalleh/filament-shield' => 
-  array (
-    'aliases' => 
-    array (
-      'FilamentShield' => 'BezhanSalleh\\FilamentShield\\Facades\\FilamentShield',
-    ),
-    'providers' => 
-    array (
-      0 => 'BezhanSalleh\\FilamentShield\\FilamentShieldServiceProvider',
-    ),
-  ),
   'blade-ui-kit/blade-heroicons' => 
   array (
     'providers' => 

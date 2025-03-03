@@ -15,6 +15,8 @@ use Filament\Forms\Components\DatePicker;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\InformeFinancieroExport;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
+ 
 
 class InformeFinancieroResource extends Resource
 {
@@ -74,4 +76,18 @@ class InformeFinancieroResource extends Resource
             'edit' => Pages\EditInformeFinanciero::route('/{record}/edit'),
         ];
     }
+
+    public static function canViewAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede ver
+}
+public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede editar
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede eliminar
+}
+
 }

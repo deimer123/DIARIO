@@ -14,6 +14,8 @@ use Filament\Tables;
 use Filament\Forms\Components\DatePicker;
 use Carbon\Carbon;
 use Filament\Forms\Components\Repeater;
+use Illuminate\Database\Eloquent\Model;
+
 
 
 class PrestamoResource extends Resource
@@ -318,4 +320,19 @@ public static function getPages(): array
         
     ];
 }
+
+
+public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDeleteAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo Admin puede ver el botón eliminar
+}
+
 }

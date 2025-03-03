@@ -19,6 +19,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Model;
 
 class PagoResource extends Resource
 {
@@ -188,4 +189,18 @@ public static function table(Table $table): Table
             'edit' => Pages\EditPago::route('/{record}/edit'),
         ];
     }
+
+    public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDeleteAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo Admin puede ver el botón eliminar
+}
+
 }

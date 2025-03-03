@@ -17,12 +17,14 @@ use Filament\Resources\Pages\EditRecord;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Models\Role;
 use App\Filament\Resources\CobradorResource\Pages;
+use Illuminate\Database\Eloquent\Model;
 
 class CobradorResource extends Resource
 {
     protected static ?string $model = User::class;
-    protected static ?string $navigationGroup = 'Administración';
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
+
+    
 
     public static function form(Forms\Form $form): Forms\Form
     {
@@ -46,8 +48,9 @@ class CobradorResource extends Resource
     ->options(Role::pluck('name', 'name')->toArray())
     ->default('Cobrador')
     ->required()
-    ->live() // 🔹 Hace que el estado del campo se actualice en tiempo real
-    ->dehydrateStateUsing(fn ($state) => $state),
+    ->dehydrateStateUsing(fn ($state) => $state) // 🔹 Guarda el valor correctamente
+    ->afterStateUpdated(fn ($state, $set) => $set('role', $state))
+    ->saveRelationshipsUsing(fn ($state, $record) => $record->assignRole($state)), // 🔹 Asegura que se guarde el estado
                     
             ]);
     }
@@ -79,26 +82,23 @@ class CobradorResource extends Resource
     /**
      * 🔹 Solo los administradores pueden acceder a este recurso.
      */
-    public static function canViewAny(): bool
-    {
-        return auth()->check() && auth()->user()->hasRole('Administrador');
-    }
-
-    /**
-     * 🔹 Se ejecuta después de crear un usuario
-     */
-    public static function afterCreate($record, array $data)
-{
-    dd(request()->all());
-
-    if (isset($data['role'])) {
-        $record->syncRoles([$data['role']]); // Asigna el rol seleccionado
-    } else {
-        throw new \Exception("No se seleccionó ningún rol.");
-    }
-
     
+     public static function canViewAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede ver
 }
+public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede editar
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede eliminar
+}
+
+     
+   
+    
 
 
 protected function mutateFormDataBeforeCreate(array $data): array

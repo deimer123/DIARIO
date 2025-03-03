@@ -16,12 +16,11 @@ class User extends Authenticatable
     use HasRoles; // 🔹 Necesario para manejar roles y permisos
 
 
-    protected function password(): Attribute
-{
-    return Attribute::make(
-        set: fn ($value) => bcrypt($value),
-    );
-}
+    protected static function boot()
+    {
+        parent::boot();
+    
+        }
 
 
 
@@ -60,22 +59,6 @@ class User extends Authenticatable
 
 
 
-    protected static function boot()
-{
-    parent::boot();
-
-    static::created(function ($user) {
-       
-
-        // Verifica si hay un rol en los datos de creación
-        if (request()->has('role')) {
-            $user->assignRole(request()->input('role'));
-            file_put_contents(storage_path('logs/test_log.txt'), "Rol asignado: " . request()->input('role') . "\n", FILE_APPEND);
-        } else {
-            $user->assignRole('Cobrador'); // Asigna "Cobrador" por defecto
-            file_put_contents(storage_path('logs/test_log.txt'), "Rol predeterminado asignado: Cobrador\n", FILE_APPEND);
-        }
-    });
-}
+    
    
 }

@@ -11,6 +11,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\MovimientoFinancieroResource\Pages;
+use Illuminate\Database\Eloquent\Model;
+
 
 class MovimientoFinancieroResource extends Resource
 {
@@ -23,12 +25,8 @@ class MovimientoFinancieroResource extends Resource
             ->schema([
                 Select::make('tipo')
                     ->label('📊 Tipo de Movimiento')
-                    ->options([
-                        'entrada' => 'Entrada de Dinero 🟢',
-                        'salida' => 'Salida de Dinero 🔴',
-                        'gasto' => 'Gasto 🔴',
-                    ])
-                    ->required(),
+                    ->options(self::getOpcionesMovimiento())
+                ->required(),
 
                 TextInput::make('monto')
                     ->label('💰 Monto')
@@ -77,4 +75,30 @@ class MovimientoFinancieroResource extends Resource
             'create' => Pages\CreateMovimientoFinanciero::route('/create'),
         ];
     }
+
+    public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador');
+}
+
+protected static function getOpcionesMovimiento(): array
+{
+    if (auth()->user()->hasRole('Administrador')) {
+        return [
+            'entrada' => 'Entrada de Dinero 🟢',
+            'salida' => 'Salida de Dinero 🔴',
+            'gasto' => 'Gasto 🔴',
+        ];
+    }
+
+    return [
+        'gasto' => 'Gasto 🔴',
+    ];
+}
+
+
 }

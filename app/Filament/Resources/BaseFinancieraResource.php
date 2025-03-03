@@ -14,9 +14,12 @@ use Filament\Forms\Components\TextInput;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\Card;
 use App\Filament\Resources\BaseFinancieraResource\Pages;
+use Illuminate\Database\Eloquent\Model;
+
 
 class BaseFinancieraResource extends Resource
 {
+    
     protected static ?string $model = BaseFinanciera::class;
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'Base Financiera';
@@ -164,4 +167,19 @@ class BaseFinancieraResource extends Resource
             'edit' => Pages\EditBaseFinanciera::route('/{record}/edit'),
         ];
     }
+
+
+    public static function canViewAny(): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede ver
+}
+public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede editar
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede eliminar
+}
+
 }
