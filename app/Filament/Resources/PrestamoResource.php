@@ -15,37 +15,47 @@ use Filament\Forms\Components\DatePicker;
 use Carbon\Carbon;
 use Filament\Forms\Components\Repeater;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\Hidden;
+use Illuminate\Database\Eloquent\Builder;
+
 
 
 
 class PrestamoResource extends Resource
 {
+
+    
     protected static ?string $model = Prestamo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    public static function query(\Illuminate\Database\Eloquent\Builder $query): \Illuminate\Database\Eloquent\Builder
-{
+    public static function query(Builder $query): Builder 
+    {
     $query->withCount([
         'planPagos as total_cuotas', // Cuenta TODAS las cuotas
         'planPagos as cuotas_pagadas' => function ($query) {
             $query->where('estado', 'Pagado'); 
         }
-    ]);
+    ]);}
 
-    // 🔹 Si el usuario es administrador, ve todos los préstamos
-    if (auth()->user()->hasRole('Administrador')) {
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (!auth()->user()->hasRole('Administrador')) {
+            $query->where('user_id', auth()->id());
+        }
+
         return $query;
     }
-
-    // 🔹 Si el usuario es cobrador, solo ve sus propios préstamos
-    return $query->where('cobrador_id', auth()->id());
-}
 
     public static function form(Forms\Form $form): Forms\Form
     {
         return $form
             ->schema([
+
+                         Hidden::make('user_id')
+                         ->default(auth()->id()), // Asigna el usuario autenticado automáticamente
                 // Campo para buscar al cliente por nombre
                         Select::make('cliente_id')
                         ->label('Seleccione El Cliente')
@@ -174,6 +184,14 @@ class PrestamoResource extends Resource
              ])
              ->required()
              ->reactive(),
+
+             Forms\Components\Select::make('user_id')
+    ->label('Asignar Cobrador')
+    ->relationship('user', 'name') // Relación con el modelo User
+    ->searchable()
+    ->preload()
+    ->hidden(fn () => !auth()->user()->hasRole('Administrador')) // Solo el Admin lo ve
+    ->required(fn () => auth()->user()->hasRole('Administrador')), // Obligatorio para el Admin
              
 
              
@@ -184,6 +202,12 @@ class PrestamoResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
+
+        ->striped() // Agrega filas con colores alternos para mejorar la lectura
+        
+        
+
+
         ->columns([
             Tables\Columns\TextColumn::make('cliente_info')
     ->label(' 😎​ Cliente / 📚​ Préstamo')
@@ -194,10 +218,17 @@ class PrestamoResource extends Resource
         'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
     ]),
 
+    Tables\Columns\TextColumn::make('user.name')
+                ->label('🧑‍💼 Cobrador')
+                ->sortable()
+                ->wrap() // Hace que el texto no se desborde
+                ->hidden(fn () => !auth()->user()->hasRole('Administrador')), // Ocultar si NO es Admin
+
 Tables\Columns\TextColumn::make('monto')
     ->label('💵 Monto')
     ->prefix('💵')
     ->money('USD')
+    ->wrap() // Hace que el texto no se desborde
     ->extraAttributes([
         'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
     ]),
@@ -207,6 +238,7 @@ Tables\Columns\TextColumn::make('saldo_restante')
     ->label(' 💱​ Restante')
     ->prefix('💰➖')
     ->money('USD')
+    ->wrap() // Hace que el texto no se desborde
     ->extraAttributes([
         'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
     ]),
@@ -216,6 +248,7 @@ Tables\Columns\TextColumn::make('saldo_pagado')
     ->label(' ✔️​ Pagado')
     ->prefix('💰➕')
     ->money('USD')
+    ->wrap() // Hace que el texto no se desborde
     ->extraAttributes([
         'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
     ]),
@@ -226,6 +259,7 @@ Tables\Columns\TextColumn::make('cuotas_pagadas')
     ->getStateUsing(fn (Prestamo $record) => 
         "📊 Total: {$record->total_cuotas} | ✅ Pagadas: {$record->cuotas_pagadas}"
     )
+    ->wrap() // Hace que el texto no se desborde
     ->extraAttributes([
         'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
     ]),
@@ -243,6 +277,7 @@ Tables\Columns\TextColumn::make('cuotas_pagadas')
                     // Opcional: Formatear el texto del estado
                     return ucfirst($state); // Convertir a "Pagado" o "Pendiente"
                 })
+                ->wrap() // Hace que el texto no se desborde
                 ->extraAttributes([
                     'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
                 ]),
@@ -334,5 +369,9 @@ public static function canDeleteAny(): bool
 {
     return auth()->user()->hasRole('Administrador'); // Solo Admin puede ver el botón eliminar
 }
+
+
+
+
 
 }

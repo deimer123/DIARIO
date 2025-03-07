@@ -20,6 +20,7 @@ use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Forms\Components\Hidden;
 
 class PagoResource extends Resource
 {
@@ -27,7 +28,16 @@ class PagoResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-    
+    public static function getEloquentQuery(): Builder
+{
+    $query = parent::getEloquentQuery()->with(['prestamo', 'prestamo.cliente', 'user']);
+
+    if (!auth()->user()->hasRole('Administrador')) {
+        $query->where('user_id', auth()->id()); // El Cobrador solo ve sus pagos
+    }
+
+    return $query;
+}
 
 
     public static function form(Forms\Form $form): Forms\Form
@@ -35,50 +45,47 @@ class PagoResource extends Resource
     return $form
         ->schema([
             
-
+            Hidden::make('user_id')
+                ->default(fn () => auth()->id()), // Asignar el ID del usuario autenticado
 
             
             
-            Select::make('prestamo_id')
-            ->required()
-            ->prefix('🤵')
-                ->reactive()
+                Select::make('prestamo_id')
                 ->label('Escriba El Nombre Del Cliente')
-                ->relationship('prestamo', 'id', fn ($query) => $query->where('estado', '!=', 'Pagado')) // Mostrar solo préstamos no pagados
-                ->searchable() // Habilitar búsqueda
+                ->prefix('🤵')
+                ->reactive()
+                ->required()
+                ->relationship('prestamo', 'id', function ($query) {
+                    $query->where('estado', '!=', 'Pagado'); // Mostrar solo préstamos no pagados
+
+                    // 🔹 Si el usuario NO es Administrador, solo ve los préstamos que él creó
+                    if (!auth()->user()->hasRole('Administrador')) {
+                        $query->where('user_id', auth()->id());
+                    }
+                })
+                ->searchable()
                 ->getSearchResultsUsing(function ($search) {
-                    $prestamos = Prestamo::with('cliente') // Cargar la relación cliente
-                        ->where('estado', '!=', 'Pagado') // Filtrar préstamos no pagados
-                        ->whereHas('cliente', function ($query) use ($search) {
-                            $query->where('nombre', 'like', "%{$search}%") // Buscar por nombre del cliente
-                                  ->orWhere('cedula', 'like', "%{$search}%"); // Buscar por cédula
-                        })
-                        ->limit(50)
-                        ->get();
-            
-                    // Construir las opciones
-                    $result = [];
-                    foreach ($prestamos as $prestamo) {
-                        $result[$prestamo->id] = "Cliente: {$prestamo->cliente->nombre} --- Préstamo Nº : {$prestamo->id}";
+                    $query = Prestamo::with('cliente')->where('estado', '!=', 'Pagado');
+
+                    if (!auth()->user()->hasRole('Administrador')) {
+                        $query->where('user_id', auth()->id());
                     }
-            
-                    return $result;
+
+                    return $query->whereHas('cliente', function ($query) use ($search) {
+                        $query->where('nombre', 'like', "%{$search}%")
+                              ->orWhere('cedula', 'like', "%{$search}%");
+                    })
+                    ->limit(50)
+                    ->get()
+                    ->pluck('cliente.nombre', 'id')
+                    ->map(fn ($name, $id) => "Cliente: $name - Préstamo ID: $id")
+                    ->toArray();
                 })
-                ->getOptionLabelUsing(function ($value): ?string {
-                    $prestamo = Prestamo::with('cliente')->find($value);
-            
-                    return $prestamo
-                        ? "Cliente: {$prestamo->cliente->nombre} - Préstamo ID: {$prestamo->id}"
-                        : null;
-                })
+                ->placeholder('Seleccione un préstamo')
                 ->afterStateUpdated(function (callable $get, callable $set) {
-                    $prestamoId = $get('prestamo_id'); // Obtener el ID del préstamo seleccionado
-                    if ($prestamoId) {
-                        $prestamo = Prestamo::find($prestamoId); // Buscar el préstamo
-                        $set('cuota_diaria', $prestamo?->cuota_diaria ?? 0); // Actualizar la cuota diaria
-                    }
-                })
-                ->placeholder('Seleccione un préstamo'),
+                    $prestamo = Prestamo::find($get('prestamo_id'));
+                    $set('cuota_diaria', $prestamo?->cuota_diaria ?? 0);
+                }),
             
 
 
@@ -136,30 +143,32 @@ class PagoResource extends Resource
 public static function table(Table $table): Table
 {
     return $table
-    ->query(Pago::query()->with(['prestamo', 'prestamo.cliente'])) // 🔥 Asegurar que cargamos relaciones
-    ->columns([
-        
-        Tables\Columns\TextColumn::make('prestamo.cliente.nombre')
-        ->label('📌 Cliente')
-        ->formatStateUsing(fn ($state) => "<strong>🧑‍💼 $state</strong>")
-        ->html() // Permite HTML para negritas
-        ->sortable(),
+    ->query(fn (Builder $query) => static::getEloquentQuery($query))
+        ->columns([
+            Tables\Columns\TextColumn::make('prestamo.cliente.nombre')
+                ->label('📌 Cliente')
+                ->sortable(),
 
-        Tables\Columns\TextColumn::make('prestamo_id')
-        ->label('📜 ID Préstamo')
-        ->formatStateUsing(fn ($state) => "📜 $state") // Quitamos el fondo amarillo
-        ->sortable(),
+            Tables\Columns\TextColumn::make('prestamo_id')
+                ->label('📜 ID Préstamo')
+                ->sortable(),
 
-    Tables\Columns\TextColumn::make('monto')
-        ->label('💰 Monto Pagado')
-        ->formatStateUsing(fn ($state) => "<span style='color: #4CAF50; font-weight: bold;'>💵 " . number_format($state, 2, ',', '.') . " US$</span>")
-        ->html()
-        ->sortable(),
+            Tables\Columns\TextColumn::make('monto')
+                ->label('💰 Monto Pagado')
+                ->formatStateUsing(fn ($state) => "<span style='color: #4CAF50; font-weight: bold;'>💵 " . number_format($state, 2, ',', '.') . " US$</span>")
+                ->html()
+                ->sortable(),
 
-    Tables\Columns\TextColumn::make('fecha_pago')
-        ->label('📅 Fecha del Pago')
-        ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y'))
-        ->sortable(),
+            Tables\Columns\TextColumn::make('fecha_pago')
+                ->label('📅 Fecha del Pago')
+                ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y'))
+                ->sortable(),
+
+            // 🔹 Mostrar el nombre del Cobrador SOLO si el usuario es Administrador
+            Tables\Columns\TextColumn::make('user.name')
+                ->label('🧑‍💼 Cobrador')
+                ->sortable()
+                ->hidden(fn () => !auth()->user()->hasRole('Administrador')),
         ])
             ->filters([
                 //
@@ -202,5 +211,12 @@ public static function canDeleteAny(): bool
 {
     return auth()->user()->hasRole('Administrador'); // Solo Admin puede ver el botón eliminar
 }
+
+public static function canCreate(): bool
+{
+    return true; // Permitir la creación de pagos para todos los usuarios
+}
+
+
 
 }

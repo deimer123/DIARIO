@@ -12,12 +12,28 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
 use App\Filament\Resources\MovimientoFinancieroResource\Pages;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Builder;
+use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Actions\DeleteAction;
+use Filament\Tables\Actions\DeleteBulkAction;
 
 
 class MovimientoFinancieroResource extends Resource
 {
     protected static ?string $model = MovimientoFinanciero::class;
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+
+    public static function getEloquentQuery(): Builder
+    {
+        $query = parent::getEloquentQuery();
+
+        if (!auth()->user()->hasRole('Administrador')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query;
+    }
 
     public static function form(Form $form): Form
     {
@@ -52,6 +68,11 @@ class MovimientoFinancieroResource extends Resource
                     'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
                 ]),
 
+                TextColumn::make('user.name')
+                ->label('🧑‍💼 Cobrador')
+                ->sortable()
+                ->hidden(fn () => !auth()->user()->hasRole('Administrador')), //
+
                 TextColumn::make('tipo')->label('📊 Tipo') ->prefix('♨️​')->extraAttributes([
                     'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
                 ]),
@@ -65,7 +86,17 @@ class MovimientoFinancieroResource extends Resource
                 ]),
 
             ])
-            ->actions([]);
+            ->actions([
+                EditAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('Administrador')), // ✅ Solo admins pueden ver "Editar"
+    
+                DeleteAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('Administrador')), // ✅ Solo admins pueden ver "Eliminar"
+            ])
+            ->bulkActions([
+                DeleteBulkAction::make()
+                    ->visible(fn () => auth()->user()->hasRole('Administrador')), // ✅ Solo admins pueden eliminar en masa
+            ]);
     }
 
     public static function getPages(): array
@@ -99,6 +130,17 @@ protected static function getOpcionesMovimiento(): array
         'gasto' => 'Gasto 🔴',
     ];
 }
+
+public static function query(Builder $query): Builder
+{
+    if (auth()->user()->hasRole('Administrador')) {
+        return $query; // Ver todos los movimientos
+    }
+
+    return $query->where('user_id', auth()->id()); // Solo ver los suyos
+}
+
+
 
 
 }

@@ -24,7 +24,11 @@ class CobradorResource extends Resource
     protected static ?string $model = User::class;
     protected static ?string $navigationIcon = 'heroicon-o-user-group';
 
-    
+    public static function getNavigationLabel(): string
+{
+    return 'Cobradores'; // 📝 Cambia el nombre que aparece en el menú
+}
+
 
     public static function form(Forms\Form $form): Forms\Form
     {

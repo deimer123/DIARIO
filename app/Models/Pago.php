@@ -13,6 +13,7 @@ class Pago extends Model
         'prestamo_id',
         'monto',
         'fecha_pago',
+        'user_id',
     ];
 
     protected $with = ['prestamo.cliente']; // Esto carga siempre la relación
@@ -73,6 +74,12 @@ protected static function boot()
     {
         parent::boot();
 
+        static::creating(function ($model) {
+            if (empty($model->user_id)) {
+                $model->user_id = auth()->id(); // Asigna el usuario autenticado
+            }
+        });
+
         // 📌 Cada vez que se registra un pago, se actualiza la base financiera
         static::created(function ($pago) {
             \Log::info("Pago recibido: $pago->monto");
@@ -80,5 +87,10 @@ protected static function boot()
             BaseFinanciera::actualizarBase($pago->monto, 'pago');
         });
     }
+
+    public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
 
 }

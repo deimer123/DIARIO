@@ -9,11 +9,24 @@ class MovimientoFinanciero extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['tipo', 'monto', 'motivo', 'fecha'];
+    protected $fillable = ['tipo', 'monto', 'motivo', 'fecha','user_id',];
+
+
+
+    public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
 
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->user_id)) {
+                $model->user_id = auth()->id(); // Asigna el usuario autenticado
+            }
+        });
 
         // 📌 Cada vez que se crea un movimiento financiero, se actualiza la Base Financiera
         static::created(function ($movimiento) {

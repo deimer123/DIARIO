@@ -11,6 +11,7 @@ class Prestamo extends Model
 
     protected $fillable = [
         'cliente_id',
+        'user_id',
         'monto', 
         'cuotas',
         'cuota_diaria',
@@ -52,11 +53,23 @@ class Prestamo extends Model
         return $this->hasMany(Pago::class);
     }
 
+    public function user()
+{
+    return $this->belongsTo(User::class, 'user_id');
+}
+
+
 
 
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function ($model) {
+            if (empty($model->user_id)) {
+                $model->user_id = auth()->id(); // Asigna el usuario autenticado
+            }
+        });
 
         // 📌 Cada vez que se crea un préstamo, se actualiza la base financiera
         static::created(function ($prestamo) {

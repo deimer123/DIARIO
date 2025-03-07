@@ -45,12 +45,15 @@ class ClienteResource extends Resource
                 ->prefix('🏠')
                 ->required(),
                 Forms\Components\FileUpload::make('foto')
-                ->image()
-                ->label('Foto Referencia')
-                ->required()   
-                ->openable()
-                ->directory(directory:'public')
-                ->storeFileNamesIn(statePath:'original_filename'),
+    ->image()
+    ->label('Foto Referencia')
+    ->required()
+    ->enableDownload()
+    ->enableOpen()
+//->disk('public') // Usar almacenamiento público
+    ->directory('uploads/fotos') // Carpeta dentro de storage/app/public
+    ->visibility('public'), // Asegura que la imagen sea accesible
+ //   ->live(), // Eliminar el `false` para permitir la carga en tiempo real
 
                 
 
@@ -66,7 +69,7 @@ class ClienteResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('foto')
                 ->label('🎥​ Foto')
-                ->url(fn ($record) => asset('public/' . $record->foto)) // Genera URL absoluta
+                ->url(fn ($record) => asset('storage/' . $record->foto))
                 ->circular()
                 ->extraAttributes([
                     'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda

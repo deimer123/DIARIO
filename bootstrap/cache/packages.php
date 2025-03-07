@@ -132,6 +132,13 @@
       0 => 'LaravelLang\\Models\\ServiceProvider',
     ),
   ),
+  'laravel-lang/moonshine' => 
+  array (
+    'providers' => 
+    array (
+      0 => 'LaravelLang\\MoonShine\\ServiceProvider',
+    ),
+  ),
   'laravel-lang/publisher' => 
   array (
     'providers' => 

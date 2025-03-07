@@ -53,11 +53,17 @@ class PlanPagoResource extends Resource
     public static function table(Tables\Table $table): Tables\Table
     {
         return $table
+        ->paginated(false) // ✅ Desactiva la paginación
 
-        ->query(fn () => \App\Models\PlanPago::query()->when(
-            request()->query('prestamo_id'), // Obtiene el ID desde la URL
-            fn ($query, $prestamoId) => $query->where('prestamo_id', $prestamoId)
-        ))
+        ->query(function () {
+            $query = PlanPago::query();
+        
+            if (request()->has('prestamo_id')) {
+                $query->where('prestamo_id', request()->query('prestamo_id'));
+            }
+        
+            return $query;
+        })
             ->columns([
                 
 
