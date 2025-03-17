@@ -10,10 +10,5 @@ class ListMovimientoFinancieros extends ListRecords
 {
     protected static string $resource = MovimientoFinancieroResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make(),
-        ];
-    }
+    
 }

@@ -45,27 +45,27 @@ class HistorialPrestamosResource extends Resource
             Tables\Columns\TextColumn::make('id')
                 ->label('📌 ID Préstamo')
                 ->prefix('💳 ')
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(),
+               
 
                 
 
             Tables\Columns\TextColumn::make('cliente.nombre')
                 ->label('🧑‍💼 Cliente')
                 ->prefix('🗣️')
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(),
+                
 
 
             Tables\Columns\TextColumn::make('monto')
                 ->label('💰 Monto Prestado')
                 ->formatStateUsing(fn ($state) => "💵 " . number_format($state, 2, ',', '.') . " US$")
-                ->prefix('⚙️')
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter()
+                ->prefix('⚙️'),
+               
 
 
             Tables\Columns\TextColumn::make('fecha_inicio_pago')
@@ -73,10 +73,10 @@ class HistorialPrestamosResource extends Resource
                 ->formatStateUsing(fn ($state) => $state 
                     ? Carbon::parse($state)->translatedFormat('d \d\e F, Y') 
                     : '❌ No registrada')
-                    ->prefix('📅')
-                    ->extraAttributes([
-                        'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                    ]),
+                    ->grow(false)
+                    ->alignCenter()
+                    ->prefix('📅'),
+                    
     
                 
 
@@ -86,10 +86,10 @@ class HistorialPrestamosResource extends Resource
                 ->formatStateUsing(fn ($state) => $state 
                     ? Carbon::parse($state)->translatedFormat('d \d\e F, Y') 
                     : '⏳ En curso')
-                    ->prefix('📅')
-                    ->extraAttributes([
-                        'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                    ]),
+                    ->grow(false)
+                    ->alignCenter()
+                    ->prefix('📅'),
+                    
     
                 
 
@@ -100,10 +100,9 @@ class HistorialPrestamosResource extends Resource
                     'danger' => fn ($state) => $state === 'Pendiente',
                 ])
                 ->formatStateUsing(fn ($state) => $state === 'Pagado' ? '🟢 Pagado' : '🔴 Pendiente')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(),
+                
 
         ])
         ->emptyStateHeading('❌ No tiene créditos en su historial')

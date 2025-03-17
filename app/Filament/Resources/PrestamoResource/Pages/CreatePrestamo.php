@@ -33,9 +33,11 @@ class CreatePrestamo extends CreateRecord
     // Ejemplo: generar plan de pagos
     $plan = PrestamoResource::generarPlanDePago(
         $prestamo->fecha_inicio_pago,
-        $prestamo->cuotas,
-        $prestamo->tipo_pago
+        intval($prestamo->cuotas), // ✅ Convertir a número entero
+        $prestamo->tipo_pago,
+        $prestamo->cobrar_domingo ?? 'no' // 📌 Si es null, asignar 'no'
     );
+    
 
     // Guardar el plan de pagos en la base de datos
     foreach ($plan as $pago) {

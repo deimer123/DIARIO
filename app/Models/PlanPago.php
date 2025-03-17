@@ -18,7 +18,8 @@ class PlanPago extends Model
 
     public function prestamo()
     {
-        return $this->belongsTo(Prestamo::class);
+       // return $this->belongsTo(Prestamo::class);
+        return $this->belongsTo(Prestamo::class, 'prestamo_id');
     }
 
 
@@ -26,4 +27,3 @@ class PlanPago extends Model
 
     
 }
-

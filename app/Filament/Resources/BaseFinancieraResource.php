@@ -25,6 +25,11 @@ class BaseFinancieraResource extends Resource
     protected static ?string $navigationLabel = 'Base Financiera';
     protected static ?string $pluralLabel = 'Base Financiera';
     protected static ?string $slug = 'base-financiera';
+    
+    
+    
+    
+    
 
     public static function form(Form $form): Form
     {
@@ -80,83 +85,85 @@ class BaseFinancieraResource extends Resource
                             ->default(fn () => BaseFinanciera::obtenerBase()->ganancia)
                             ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
                     ])
-                    ->extraAttributes(['class' => 'p-4 border border-gray-200 rounded-lg']) // 🔹 Borde para la tarjeta
+                    
             ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table
+        ->striped() // Alterna colores en las filas
+        ->paginated(false) // ✅ Desactiva la paginación
         ->columns([
             TextColumn::make('base_inicial')
                 ->label('🏦 Base Inicial')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->money('USD')
-                ->sortable() // Permite ordenar esta columna
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->alignCenter(), // Alinea el texto a la derecha
+                
+                
            
 
             TextColumn::make('monto_disponible')
-                ->label('💰 Monto Disponible')
+                ->label('💰 Disponible')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->money('USD')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(), // Alinea el texto a la derecha
            
 
             TextColumn::make('total_prestado')
-                ->label('💸 Total Prestado')
+                ->label('💸 Prestado')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->money('USD')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->alignCenter(), // Alinea el texto a la derecha
 
            
 
             TextColumn::make('total_pendiente')
-                ->label('🔴 Pendiente por Cobrar')
+                ->label('🔴 Cobrar')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->money('USD')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(), // Alinea el texto a la derecha
 
            
 
             TextColumn::make('total_gastos_salidas')
-                ->label('💸 Gastos y Salidas')
-                ->suffix(' USD')
+                ->label('💸 Gastos')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->alignCenter(), // Alinea el texto a la derecha
 
            
 
            
             TextColumn::make('ganancia')
-                ->label('📈 Ganancia Total')
+                ->label('📈 Ganancia')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->prefix('💲')
-                ->money('USD')
-                ->sortable()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                ->grow(false)
+                ->alignCenter(), // Alinea el texto a la derecha
 
            
         ])
-        ->striped() // 🔹 Agrega filas alternas de diferentes colores
-        ->defaultSort('id', 'desc') // 🔹 Ordena por defecto en orden descendente
         
-            ->actions([]);
+        
+            ->actions([])
+
+
+            ->headerActions([
+                
+            ]);
     }
 
     public static function getPages(): array

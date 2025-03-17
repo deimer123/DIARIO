@@ -82,6 +82,7 @@ class PagoResource extends Resource
                     ->toArray();
                 })
                 ->placeholder('Seleccione un préstamo')
+              //  ->default(fn () => str_replace(['-', '_'], [':', ' '], request()->query('cliente_nombre', ''))) // ✅ Asegura que el nombre se muestre correctamente
                 ->afterStateUpdated(function (callable $get, callable $set) {
                     $prestamo = Prestamo::find($get('prestamo_id'));
                     $set('cuota_diaria', $prestamo?->cuota_diaria ?? 0);
@@ -143,43 +144,62 @@ class PagoResource extends Resource
 public static function table(Table $table): Table
 {
     return $table
+    ->striped() // Alterna colores en las filas
+        ->paginated(false) // ✅ Desactiva la paginación
     ->query(fn (Builder $query) => static::getEloquentQuery($query))
         ->columns([
             Tables\Columns\TextColumn::make('prestamo.cliente.nombre')
                 ->label('📌 Cliente')
-                ->sortable(),
+                ->grow(false)
+                ->alignCenter()
+                ->prefix('🧑‍💼 '),
+
+                // 🔹 Mostrar el nombre del Cobrador SOLO si el usuario es Administrador
+            Tables\Columns\TextColumn::make('user.name')
+            ->label('🧑‍💼 Cobrador')
+            ->prefix('👺 ')
+            ->grow(false)
+            ->alignCenter()
+            ->toggleable()
+            ->toggledHiddenByDefault(true)
+            ->hidden(fn () => !auth()->user()->hasRole('Administrador')),
 
             Tables\Columns\TextColumn::make('prestamo_id')
                 ->label('📜 ID Préstamo')
-                ->sortable(),
+                ->prefix('#️⃣')
+                ->grow(false)
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->alignCenter(),
 
             Tables\Columns\TextColumn::make('monto')
                 ->label('💰 Monto Pagado')
-                ->formatStateUsing(fn ($state) => "<span style='color: #4CAF50; font-weight: bold;'>💵 " . number_format($state, 2, ',', '.') . " US$</span>")
-                ->html()
-                ->sortable(),
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
+                ->prefix('💲')
+                ->grow(false)
+                ->alignCenter(), // Alinea el texto a la derecha
 
             Tables\Columns\TextColumn::make('fecha_pago')
                 ->label('📅 Fecha del Pago')
-                ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y'))
-                ->sortable(),
+                ->prefix('📅 ')
+                ->grow(false)
+                ->alignCenter()
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y')),
+                
 
-            // 🔹 Mostrar el nombre del Cobrador SOLO si el usuario es Administrador
-            Tables\Columns\TextColumn::make('user.name')
-                ->label('🧑‍💼 Cobrador')
-                ->sortable()
-                ->hidden(fn () => !auth()->user()->hasRole('Administrador')),
+            
         ])
             ->filters([
                 //
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
+            ->actions([ ])
+            ->headerActions([
+                
+                \Filament\Tables\Actions\CreateAction::make()
+                    ->label('Crear Pago') // 🔹 Cambia el nombre del botón
+                    ->color('success') // 🔹 Puedes cambiar el color si lo deseas
             ]);
     }
 

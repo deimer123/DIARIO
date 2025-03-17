@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Forms\Components\Button;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 
 class ClienteResource extends Resource
@@ -47,7 +48,7 @@ class ClienteResource extends Resource
                 Forms\Components\FileUpload::make('foto')
     ->image()
     ->label('Foto Referencia')
-    ->required()
+    //->required()
     ->enableDownload()
     ->enableOpen()
 //->disk('public') // Usar almacenamiento público
@@ -65,28 +66,37 @@ class ClienteResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
+        return $table   
+        
+        
+        ->paginated(false) // ✅ Desactiva la paginación
             ->columns([
                 Tables\Columns\ImageColumn::make('foto')
-                ->label('🎥​ Foto')
-                ->url(fn ($record) => asset('storage/' . $record->foto))
+                ->label('🎥 Foto')
+                ->getStateUsing(fn ($record) => Storage::url($record->foto)) // ✅ Evita duplicar la ruta
+                ->url(fn ($record) => Storage::url($record->foto)) // ✅ Evita duplicar la ruta
                 ->circular()
-                ->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
-
+                ->size(40)
+                ->alignCenter(),
+                
 
             // Opcional: muestra imágenes redondas
-                Tables\Columns\TextColumn::make('nombre')->sortable()
-                ->label('✍️​ Nombre')->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
-
+                Tables\Columns\TextColumn::make('nombre')
+                ->label('✍️​ Nombre')
+                ->prefix('🧑‍💼')
+                ->searchable()
+                ->grow(false)
+                ->alignCenter(), 
 
            
-                Tables\Columns\TextColumn::make('cedula')->label('​📰​​ Cedula')->extraAttributes([
-                    'class' => 'border-2 border-gray-700 p-4 text-left text-lg font-semibold', // 🔹 Bordes gruesos y alineación a la izquierda
-                ]),
+                Tables\Columns\TextColumn::make('cedula')
+                ->label('​📰​​ Cedula')
+                ->prefix('🆔')
+                ->grow(false)
+                ->searchable()
+                ->toggleable()
+                ->toggledHiddenByDefault(true)
+                ->alignCenter(), 
 
 
            
@@ -95,20 +105,33 @@ class ClienteResource extends Resource
                 //
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
+
+
+
+                
+                
 
                 Tables\Actions\Action::make('historial_prestamos')
                 ->label('📜 Ver Historial')
                 ->icon('heroicon-o-document-text')
                 ->url(fn ($record) => HistorialPrestamosResource::getUrl('index', ['cliente_id' => $record->id])), // 🔥 REDIRIGE AL HISTORIAL DEL CLIENTE
                 
+                
             
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+
+            
+
+            ->headerActions([
+                
+
+                    \Filament\Tables\Actions\CreateAction::make()
+                    ->label('Crear Cliente') // 🔹 Cambia el nombre del botón
+                    ->color('success') // 🔹 Puedes cambiar el color si lo deseas
+            ])
+
+
+            ->bulkActions([]);
     }
 
     public static function getRelations(): array

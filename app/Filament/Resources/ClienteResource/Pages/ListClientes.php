@@ -10,10 +10,5 @@ class ListClientes extends ListRecords
 {
     protected static string $resource = ClienteResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make(),
-        ];
-    }
+    
 }

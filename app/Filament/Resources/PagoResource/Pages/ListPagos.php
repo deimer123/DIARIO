@@ -10,10 +10,5 @@ class ListPagos extends ListRecords
 {
     protected static string $resource = PagoResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make(), // 📌 Agrega el botón "Crear"
-        ];
-    }
+    
 }

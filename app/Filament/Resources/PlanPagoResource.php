@@ -73,11 +73,15 @@ class PlanPagoResource extends Resource
     ->getStateUsing(fn($record) => 'Cuota ' . ($record->prestamo->planPagos->search(fn($pago) => $pago->id === $record->id) + 1))
     ->sortable(),
                 
-    Tables\Columns\TextColumn::make('fecha')
-    ->label('📅 Fecha')
-    ->sortable()
-    ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y')),
+ 
 
+Tables\Columns\TextColumn::make('fecha')
+    ->label('📅 Fecha')
+    ->formatStateUsing(fn ($state, $record) => 
+        Carbon::parse($state)->translatedFormat('l, d \d\e F, Y') . 
+        " ----| 💵 $ " . number_format($record->prestamo->cuota_diaria, 0, ',', '.')
+            ),
+    
                 Tables\Columns\BadgeColumn::make('estado')
                     ->label(' 💹​ Estado')
                     ->colors([

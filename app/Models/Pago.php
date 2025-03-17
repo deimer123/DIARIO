@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 class Pago extends Model
 {
@@ -65,28 +66,18 @@ public function cliente()
         }
 
         $prestamo->save();
+
+
+        Log::info("✅ Nuevo saldo después del pago: {$prestamo->saldo_restante}");
+
+            // 🔥 **Actualizar la Base Financiera con el tipo 'pago'**
+            BaseFinanciera::actualizarBase($pago->monto, 'pago');
     });
 }
 
 
 
-protected static function boot()
-    {
-        parent::boot();
 
-        static::creating(function ($model) {
-            if (empty($model->user_id)) {
-                $model->user_id = auth()->id(); // Asigna el usuario autenticado
-            }
-        });
-
-        // 📌 Cada vez que se registra un pago, se actualiza la base financiera
-        static::created(function ($pago) {
-            \Log::info("Pago recibido: $pago->monto");
-
-            BaseFinanciera::actualizarBase($pago->monto, 'pago');
-        });
-    }
 
     public function user()
 {

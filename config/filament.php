@@ -83,7 +83,7 @@ return [
     */
 
     'cache_path' => base_path('bootstrap/cache/filament'),
-
+'title' => 'Inversiones Credi-Ya ----- ""Dinero al Instante', // Cambia esto por el nombre que desees
     /*
     |--------------------------------------------------------------------------
     | Livewire Loading Delay

@@ -10,10 +10,5 @@ class ListInformeFinancieros extends ListRecords
 {
     protected static string $resource = InformeFinancieroResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\CreateAction::make(),
-        ];
-    }
+    
 }

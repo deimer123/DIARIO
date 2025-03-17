@@ -17,21 +17,64 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Pages\Auth\Login;
+use Filament\Support\Enums\ThemeMode;
+use Filament\Navigation\NavigationGroup;
+use Filament\Facades\Filament;
+use Filament\Support\Facades\FilamentAsset;
+use Illuminate\Support\ServiceProvider;
+
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        Filament::registerStyles([
+            asset('css/custom.css'), // Asegúrate de que el archivo esté en `public/css/`
+        ]);
+    }
+}
+
 
 class AdminPanelProvider extends PanelProvider
 {
+
+
+    
+
+
+    public function header(): ?View
+{
+    return view('filament.header', [
+        'logo' => asset('storage/logo.png'), // Asegúrate de que la imagen esté en storage
+        'width' => '50px', // Ajusta el ancho aquí
+        'height' => 'auto', // Mantiene la proporción
+    ]);
+}
+    
+
+
+
     public function panel(Panel $panel): Panel
     {
+            
+
+        
         return $panel
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login() // Aquí indicamos la nueva página de login
+            ->brandName('Inversiones Credi-Ya -- Dinero al Instante') // Cambia Laravel por el nombre de tu empresa
+            ->brandLogo(asset('storage/logo.png')) // Cambia el logo en la barra lateral
+            ->brandLogoHeight('60px')
+            
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->authGuard('web') // 🔹 Asegura que Filament use el guard 'web'
             ->colors([
-                'primary' => Color::Blue,
+                'primary' => Color::Green,
             ])
+            
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages($this->getPages()) // ⬅ Aquí se usa la función `getPages()`
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
