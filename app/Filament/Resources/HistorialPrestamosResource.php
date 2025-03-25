@@ -61,7 +61,7 @@ class HistorialPrestamosResource extends Resource
 
             Tables\Columns\TextColumn::make('monto')
                 ->label('💰 Monto Prestado')
-                ->formatStateUsing(fn ($state) => "💵 " . number_format($state, 2, ',', '.') . " US$")
+                ->formatStateUsing(fn ($state) => "💵 " . number_format($state, 0, ',', '.') . " ")
                 ->grow(false)
                 ->alignCenter()
                 ->prefix('⚙️'),

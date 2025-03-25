@@ -100,6 +100,7 @@ class PagoResource extends Resource
                 ->disabled() // Campo no editable
                 ->numeric()
                 ->prefix('💲')
+                ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.'))
                 ->step(0.01),
 
     
@@ -129,7 +130,8 @@ class PagoResource extends Resource
                             ->danger()
                             ->send();
                     }
-                })->placeholder('Digite el monto a pagar'),
+                })->placeholder('Digite el monto a pagar')
+                ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.')),
 
             DatePicker::make('fecha_pago')
                 ->label('Fecha del Pago')
@@ -215,7 +217,7 @@ public static function table(Table $table): Table
         return [
             'index' => Pages\ListPagos::route('/'),
             'create' => Pages\CreatePago::route('/create'),
-            'edit' => Pages\EditPago::route('/{record}/edit'),
+           // 'edit' => Pages\EditPago::route('/{record}/edit'),
         ];
     }
 

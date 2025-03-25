@@ -78,11 +78,11 @@ class PrestamoResource extends Resource
             $interes = (float) $get('interes') / 100;
             $montoConInteres = $monto + ($monto * $interes);
             
-            $set('saldo_restante', number_format($montoConInteres, 2, '.', ''));
+            $set('saldo_restante', number_format($montoConInteres, 0, '.', ''));
 
             $cuotas = (int) $get('cuotas');
             if ($cuotas > 0) {
-                $set('cuota_diaria', number_format($montoConInteres / $cuotas, 2, '.', ''));
+                $set('cuota_diaria', number_format($montoConInteres / $cuotas, 0, '.', ''));
             }
         })
         ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.')), // ✅ Formato correcto sin afectar la escritura
@@ -108,10 +108,9 @@ class PrestamoResource extends Resource
                 $set('cuota_diaria', number_format($montoConInteres / $cuotas, 0, '.', ''));
             }
         })
-        ->formatStateUsing(fn ($state) => $state !== null ? number_format((float) $state, 0, ',', '.') : '') // Muestra vacío si es null
-        ->suffix(fn ($state) => $state !== null ? number_format((float) str_replace('.', '', $state), 0, ',', '.') : '')
-        ->placeholder('') // Caja vacía al inicio
-        ->default(null), // No pone 0 por defecto
+        ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.')),
+       // ->formatStateUsing(fn ($state) => number_format((float) $state, 0, ',', '.')),
+
 
         TextInput::make('cuotas')
         ->label('Número de Cuotas')
@@ -133,12 +132,12 @@ class PrestamoResource extends Resource
                         $fail('Si el tipo de pago es diario, las cuotas deben ser mayores a 24.');
                     }
     
-                    if ($tipoPago === 'semanal' && ($cuotas < 1 || $cuotas > 8)) {
+                    if ($tipoPago === 'semanal' && ($cuotas < 1 || $cuotas > 16)) {
                         $fail('Si el tipo de pago es semanal, las cuotas deben estar entre 1 y 8.');
                     }
     
-                    if ($tipoPago === 'quincenal' && ($cuotas < 1 || $cuotas > 4)) {
-                        $fail('Si el tipo de pago es quincenal, las cuotas deben estar entre 1 y 4.');
+                    if ($tipoPago === 'quincenal' && ($cuotas < 1 || $cuotas > 6)) {
+                        $fail('Si el tipo de pago es quincenal, las cuotas deben estar entre 1 y 16.');
                     }
                 };
             },
@@ -158,16 +157,14 @@ class PrestamoResource extends Resource
                     
 
     TextInput::make('saldo_restante')
-        ->label('Monto Total Con Interés ($)')
-        ->prefix('💲')
-        ->numeric()
-        ->default(0)
-        ->reactive()
-        ->readonly()
-        ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.'))
-        ->formatStateUsing(fn ($state) => number_format((float) $state, 0, ',', '.')), // ✅ Sin decimales y con separadores,
-
-
+    ->label('Monto Total Con Interés ($)')
+    ->prefix('💲')
+    ->numeric()
+    ->default(0)
+    ->reactive()
+    ->readonly()
+    ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.')),
+    //->formatStateUsing(fn ($state) => number_format((float) $state, 0, ',', '.')),
 
 
     TextInput::make('cuota_diaria')
@@ -183,7 +180,7 @@ class PrestamoResource extends Resource
 
                 if ($cuotas > 0) {
                     $cuotaDiaria = $montoConInteres / $cuotas;
-                    $set('cuota_diaria', number_format($cuotaDiaria, 2, '.', ''));
+                    $set('cuota_diaria', number_format($cuotaDiaria, 0, '.', ''));
                 } else {
                     $set('cuota_diaria', 0);
                 }
@@ -197,7 +194,8 @@ class PrestamoResource extends Resource
         ->default(now())
         ->prefix('🗓️')
         ->required()
-        ->readonly(),
+        ->readonly()
+        ->extraAttributes(['onfocus' => 'this.blur();']),
 
         
     DatePicker::make('fecha_inicio_pago')// Fecha de Inicio de Pago
@@ -305,7 +303,8 @@ Tables\Columns\TextColumn::make('saldo_pagado')
 
 Tables\Columns\TextColumn::make('cuotas_pagadas')
     ->label(' 🗂️​ Cuotas')
-    ->hidden(fn () => !session('mostrarColumnas', false))
+    ->toggleable()
+    ->toggledHiddenByDefault(true)
     ->getStateUsing(fn (Prestamo $record) => 
         "📊 Total: {$record->total_cuotas} | ✅ Pagadas: {$record->cuotas_pagadas}"
 )

@@ -13,6 +13,7 @@ class ViewPrestamo extends ViewRecord
     protected function getHeaderActions(): array
     {
         return [
+            Actions\DeleteAction::make(),
               ];
     }
 }
