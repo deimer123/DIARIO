@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Prestamo;
+use App\Models\Pago;
 use App\Models\MovimientoFinanciero;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -17,82 +18,108 @@ class InformeFinancieroExport implements FromCollection, WithHeadings, WithEvent
 
     public function __construct($fechaInicio, $fechaFin)
     {
-        $this->fechaInicio = $fechaInicio instanceof Carbon ? $fechaInicio : Carbon::parse($fechaInicio);
-        $this->fechaFin = $fechaFin instanceof Carbon ? $fechaFin : Carbon::parse($fechaFin);
+        $this->fechaInicio = $fechaInicio instanceof Carbon ? $fechaInicio->startOfDay() : Carbon::parse($fechaInicio)->startOfDay();
+        $this->fechaFin = $fechaFin instanceof Carbon ? $fechaFin->endOfDay() : Carbon::parse($fechaFin)->endOfDay();
     }
 
     public function collection()
     {
-        // 📌 Obtener préstamos dentro del rango de fechas
-        $prestamos = Prestamo::whereBetween('fecha_prestamo', [$this->fechaInicio, $this->fechaFin])
-            ->with('cliente')
-            ->get()
-            ->map(function ($prestamo) {
-                return [
-                    'Cliente' => $prestamo->cliente->nombre ?? 'Sin Cliente',
-                    'Valor Prestado' => (float) $prestamo->monto, 
-                    'Total Pagado' => (float) $prestamo->saldo_pagado,
-                    'Ganancia' => (float) ($prestamo->saldo_pagado - $prestamo->monto),
-                    'Estado' => $prestamo->saldo_restante == 0 ? 'Pagado' : 'Pendiente',
-                    'Falta por Cobrar' => (float) $prestamo->saldo_restante,
-                ];
-            });
+        $fechasDePago = Pago::whereBetween('fecha_pago', [$this->fechaInicio, $this->fechaFin])
+            ->orderBy('fecha_pago')
+            ->pluck('fecha_pago')
+            ->unique()
+            ->map(fn($fecha) => Carbon::parse($fecha)->format('d-m-Y'))
+            ->values()
+            ->toArray();
 
-        // 📌 Obtener los movimientos financieros dentro del rango de fechas
-        $movimientos = MovimientoFinanciero::whereBetween('fecha', [$this->fechaInicio, $this->fechaFin])
-            ->get()
-            ->map(function ($movimiento) {
-                return [
-                    'Tipo' => ucfirst($movimiento->tipo),
-                    'Monto' => (float) $movimiento->monto,
-                    'Motivo' => $movimiento->motivo ?? 'Sin Motivo',
-                    'Fecha' => $movimiento->fecha 
-                        ? Carbon::parse($movimiento->fecha)->format('d-m-Y') 
-                        : 'Fecha No Disponible',
-                ];
-            });
+        $encabezadosPagos = array_merge(['Cliente'], $fechasDePago);
 
-        // 📌 Totales de préstamos y ganancias
-        $totalPrestado = $prestamos->sum('Valor Prestado');
-        $totalCobrado = $prestamos->sum('Total Pagado');
-        $totalGanancia = $prestamos->sum('Ganancia');
+        $prestamosConPagos = Prestamo::with(['cliente', 'pagos' => function ($q) {
+                $q->whereBetween('fecha_pago', [$this->fechaInicio, $this->fechaFin])
+                  ->orderBy('fecha_pago');
+            }])
+            ->whereDate('fecha_prestamo', '<=', $this->fechaFin)
+            ->whereHas('pagos', function ($q) {
+                $q->whereBetween('fecha_pago', [$this->fechaInicio, $this->fechaFin]);
+            })
+            ->get();
 
-        $totalEntradas = $movimientos->where('Tipo', 'Entrada')->sum('Monto');
-        $totalSalidas = $movimientos->where('Tipo', 'Salida')->sum('Monto');
-        $totalGastos = $movimientos->where('Tipo', 'Gasto')->sum('Monto');
+        $dataPagos = $prestamosConPagos->map(function ($prestamo) use ($fechasDePago) {
+            $fila = [$prestamo->cliente->nombre ?? 'Sin Nombre'];
+            $pagosPorFecha = $prestamo->pagos->groupBy(fn($p) => Carbon::parse($p->fecha_pago)->format('d-m-Y'));
+            foreach ($fechasDePago as $fecha) {
+                $monto = optional($pagosPorFecha->get($fecha))->sum('monto') ?? '';
+                $fila[] = $monto > 0 ? $monto : '';
+            }
+            return $fila;
+        });
 
-        // 📌 Cálculo del balance final
-        $balanceFinal = ($totalCobrado + $totalEntradas) - ($totalSalidas + $totalGastos);
+        $prestamosEnRango = Prestamo::with('cliente')
+            ->whereBetween('fecha_prestamo', [$this->fechaInicio, $this->fechaFin])
+            ->get();
 
-        // 📌 Construcción de la estructura final para el Excel con separaciones
+        $dataPrestamos = $prestamosEnRango->map(function ($p) {
+            return [
+                $p->id,
+                $p->cliente->nombre ?? 'Sin Nombre',
+                Carbon::parse($p->fecha_prestamo)->format('d-m-Y'),
+                $p->monto,
+                $p->saldo_pagado,
+                $p->saldo_restante,
+                $p->interes,
+                $p->monto * ($p->interes / 100),
+                ucfirst($p->estado),
+            ];
+        });
+
+        $totalPrestado = $prestamosEnRango->sum('monto');
+        $totalCobrado = Pago::whereBetween('fecha_pago', [$this->fechaInicio, $this->fechaFin])->sum('monto');
+        $gananciaTotal = $prestamosEnRango->sum(fn($p) => $p->monto * ($p->interes / 100));
+
+        $gastos = MovimientoFinanciero::whereBetween('fecha', [$this->fechaInicio, $this->fechaFin])->orderBy('fecha')->get();
+        $totalGastos = $gastos->sum('monto');
+
+        $gastosData = $gastos->map(function ($gasto) {
+            return [
+                Carbon::parse($gasto->fecha)->format('d-m-Y'),
+                $gasto->motivo,
+                $gasto->monto
+            ];
+        });
+
         return collect([
-            ['INFORME FINANCIERO'],
+            ['REPORTE FINANCIERO'],
+            [''],
             ['Fecha Inicio:', $this->fechaInicio->format('d-m-Y')],
             ['Fecha Fin:', $this->fechaFin->format('d-m-Y')],
-            [],
-            ['PRÉSTAMOS'],
-            ['Cliente', 'Valor Prestado', 'Total Pagado', 'Ganancia', 'Estado', 'Falta por Cobrar'],
+            [''],
+            ['📄 PRÉSTAMOS EN EL RANGO'],
+            [''],
+            ['ID', 'Cliente', 'Fecha del Préstamo', 'Monto', 'Saldo Pagado', 'Saldo por Pagar', 'Interés (%)', 'Ganancia', 'Estado'],
         ])
-        ->merge($prestamos)
+        ->merge($dataPrestamos)
         ->merge([
-            [],
-            ['RESUMEN FINANCIERO'],
-            ['Total Prestado', 'Total Cobrado', 'Ganancia Total'],
-            [$totalPrestado, $totalCobrado, $totalGanancia],
-            [],
-            ['MOVIMIENTOS FINANCIEROS'],
-            [],
-            ['Tipo', 'Monto', 'Motivo', 'Fecha'],
+            [''],
+            ['📌 PRÉSTAMOS CON PAGOS'],
+            [''],
+            $encabezadosPagos,
         ])
-        ->merge($movimientos)
+        ->merge($dataPagos)
         ->merge([
-            [],
-            ['TOTAL MOVIMIENTOS'],
-            ['Total Entradas', 'Total Salidas', 'Total Gastos'],
-            [$totalEntradas, $totalSalidas, $totalGastos],
-            [],
-            ['BALANCE FINAL'],
-            ['Disponible después de Movimientos', $balanceFinal],
+            [''],
+            ['📉 GASTOS EN EL RANGO'],
+            [''],
+            ['Fecha', 'Motivo', 'Monto'],
+        ])
+        ->merge($gastosData)
+        ->merge([
+            [''],
+            ['📊 RESUMEN FINANCIERO'],
+            [''],
+            ['Total Prestado en el rango:', $totalPrestado],
+            ['Total Cobrado en el rango:', $totalCobrado],
+            ['Total de gastos:', $totalGastos],
+            ['Ganancia estimada:', $gananciaTotal],
         ]);
     }
 
@@ -102,36 +129,82 @@ class InformeFinancieroExport implements FromCollection, WithHeadings, WithEvent
     }
 
     public function registerEvents(): array
-    {
-        return [
-            AfterSheet::class => function (AfterSheet $event) {
-                $sheet = $event->sheet->getDelegate();
+{
+    return [
+        AfterSheet::class => function (AfterSheet $event) {
+            $sheet = $event->sheet->getDelegate();
+            $lastColumn = $sheet->getHighestColumn();
+            $lastRow = $sheet->getHighestRow();
 
-                // 📌 Ajustar el ancho de las columnas automáticamente
-                foreach (range('A', 'F') as $col) {
-                    $sheet->getColumnDimension($col)->setAutoSize(true);
+            $highestColumnIndex = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::columnIndexFromString($lastColumn);
+            for ($i = 1; $i <= $highestColumnIndex; $i++) {
+                $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($i);
+                $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+            }
+
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+            $sheet->mergeCells("A1:G1");
+
+            // Colores únicos por tabla
+            $colorPrestamos = 'D9EAD3';       // Verde claro
+            $colorPagos = 'FCE5CD';           // Naranja claro
+            $colorGastos = 'C9DAF8';          // Azul claro
+            $colorResumen = 'F4CCCC';         // Rojo claro
+
+            for ($fila = 1; $fila <= $lastRow; $fila++) {
+                $valor = $sheet->getCell("A{$fila}")->getValue();
+
+                if ($valor === '📄 PRÉSTAMOS EN EL RANGO') {
+                    $sheet->getStyle("A{$fila}")->getFont()->setBold(true)->setSize(13);
+                    $headerRow = $fila + 2;
+                    $sheet->getStyle("A{$headerRow}:I{$headerRow}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$headerRow}:I{$headerRow}")->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setRGB($colorPrestamos);
+                    $sheet->getStyle("A{$headerRow}:I{$lastRow}")
+                        ->getBorders()->getAllBorders()
+                        ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
                 }
 
-                // 📌 Negrita para el título del informe
-                $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-                $sheet->mergeCells('A1:F1'); // Unir celdas del título
+                if ($valor === '📌 PRÉSTAMOS CON PAGOS') {
+                    $sheet->getStyle("A{$fila}")->getFont()->setBold(true)->setSize(13);
+                    $encabezadoRow = $fila + 2;
+                    $sheet->getStyle("A{$encabezadoRow}:{$lastColumn}{$encabezadoRow}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$encabezadoRow}:{$lastColumn}{$encabezadoRow}")->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setRGB($colorPagos);
+                    $sheet->getStyle("A{$encabezadoRow}:{$lastColumn}{$lastRow}")
+                        ->getAlignment()->setWrapText(true);
+                    $sheet->getStyle("A{$encabezadoRow}:{$lastColumn}{$lastRow}")
+                        ->getBorders()->getAllBorders()
+                        ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+                }
 
-                
+                if ($valor === '📉 GASTOS EN EL RANGO') {
+                    $sheet->getStyle("A{$fila}")->getFont()->setBold(true)->setSize(13);
+                    $headerRow = $fila + 2;
+                    $sheet->getStyle("A{$headerRow}:C{$headerRow}")->getFont()->setBold(true);
+                    $sheet->getStyle("A{$headerRow}:C{$headerRow}")->getFill()
+                        ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                        ->getStartColor()->setRGB($colorGastos);
+                    $sheet->getStyle("A{$headerRow}:C{$lastRow}")
+                        ->getBorders()->getAllBorders()
+                        ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+                }
 
-                // 📌 Aplicar bordes a las tablas de datos
-                $lastRow = $event->sheet->getHighestRow();
-                $sheet->getStyle("A5:F$lastRow")->applyFromArray([
-                    'borders' => [
-                        'allBorders' => [
-                            'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
-                            'color' => ['argb' => '000000'],
-                        ],
-                    ],
-                ]);
+                if ($valor === '📊 RESUMEN FINANCIERO') {
+                    $sheet->getStyle("A{$fila}")->getFont()->setBold(true)->setSize(13);
+                    for ($i = 1; $i <= 4; $i++) {
+                        $resumenRow = $fila + $i + 1;
+                        $sheet->getStyle("A{$resumenRow}:B{$resumenRow}")->getFont()->setBold(true);
+                        $sheet->getStyle("A{$resumenRow}:B{$resumenRow}")->getFill()
+                            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                            ->getStartColor()->setRGB($colorResumen);
+                    }
+                }
+            }
+        },
+    ];
+}
 
-                // 📌 Centrar los títulos
-                $sheet->getStyle("A1:A$lastRow")->getAlignment()->setHorizontal('center');
-            },
-        ];
-    }
 }

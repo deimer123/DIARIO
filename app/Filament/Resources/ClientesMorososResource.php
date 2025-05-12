@@ -16,7 +16,7 @@ class ClientesMorososResource extends Resource
     protected static ?string $model = Prestamo::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-circle';
-    protected static ?string $navigationLabel = '🚨 Clientes Morosos';
+    protected static ?string $navigationLabel = 'Clientes Morosos';
     protected static ?int $navigationSort = 2; // Posición en el menú
     protected static ?string $pluralLabel = 'Clientes Morosos';
 
@@ -86,8 +86,9 @@ class ClientesMorososResource extends Resource
             Tables\Columns\TextColumn::make('monto_mora')
                 ->label('💰 Deuda Total')
                 ->getStateUsing(fn (Prestamo $record) => 
-                    '💲 ' . number_format($record->cuotas_vencidas * $record->cuota_diaria, 2)
+                    '💲 ' . number_format($record->cuotas_vencidas * $record->cuota_diaria, 0)
                 )
+                ->color('success')
                 ->sortable(),
 
             Tables\Columns\TextColumn::make('cuota_diaria')
@@ -108,7 +109,7 @@ class ClientesMorososResource extends Resource
         ->actions([
             Tables\Actions\Action::make('Realizar Pago')
                 ->label('💰 Pagar')
-                ->url(fn (Prestamo $record) => PagoResource::getUrl('create', ['prestamo_id' => $record->id])),
+                ->url(fn () => PagoResource::getUrl('index')),
         ])
         ->filters([
             //

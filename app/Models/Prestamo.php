@@ -34,6 +34,12 @@ class Prestamo extends Model
         return $this->belongsTo(Cliente::class);
     }
 
+    public function scopeSoloPendientes($query)
+{
+    return $query->where('estado', 'pendiente');
+}
+
+
     public function planPagos()
     {
         return $this->hasMany(PlanPago::class, 'prestamo_id');

@@ -15,6 +15,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\Card;
 use App\Filament\Resources\BaseFinancieraResource\Pages;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Filament\Tables\Actions\Action;
 
 
 class BaseFinancieraResource extends Resource
@@ -27,66 +30,10 @@ class BaseFinancieraResource extends Resource
     protected static ?string $slug = 'base-financiera';
     
     
-    
-    
-    
-
+   
     public static function form(Form $form): Form
     {
-        return $form
-            ->schema([
-                Card::make()
-                    ->schema([
-                        TextInput::make('base_inicial')
-                            ->label('🏦 Base Inicial de Préstamos')
-                            ->numeric()
-                            ->required()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->base_inicial)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']), // 🔹 Borde y espaciado
-    
-                        TextInput::make('monto_disponible')
-                            ->label('💰 Monto Disponible')
-                            ->numeric()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->monto_disponible)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-    
-                        TextInput::make('total_prestado')
-                            ->label('💸 Total Prestado')
-                            ->numeric()
-                            ->disabled()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->total_prestado)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-    
-                        TextInput::make('total_pendiente')
-                            ->label('🔴 Pendiente por Cobrar')
-                            ->numeric()
-                            ->disabled()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->total_pendiente)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-    
-                        TextInput::make('total_gastos_salidas')
-                            ->label('💸 Total Gastos y Salidas')
-                            ->numeric()
-                            ->disabled()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->total_gastos_salidas)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-    
-                        TextInput::make('balance_ajustado')
-                            ->label('📊 Balance Ajustado')
-                            ->numeric()
-                            ->disabled()
-                            ->default(fn () => BaseFinanciera::calcularBalanceAjustado())
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-    
-                        TextInput::make('ganancia')
-                            ->label('📈 Ganancia Total')
-                            ->numeric()
-                            ->disabled()
-                            ->default(fn () => BaseFinanciera::obtenerBase()->ganancia)
-                            ->extraAttributes(['class' => 'border border-gray-300 p-2 rounded']),
-                    ])
-                    
-            ]);
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
@@ -94,84 +41,25 @@ class BaseFinancieraResource extends Resource
         return $table
         ->striped() // Alterna colores en las filas
         ->paginated(false) // ✅ Desactiva la paginación
-        ->columns([
-            TextColumn::make('base_inicial')
-                ->label('🏦 Base Inicial')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->toggleable()
-                ->toggledHiddenByDefault(true)
-                ->alignCenter(), // Alinea el texto a la derecha
+            ->columns([
                 
-                
-           
 
-            TextColumn::make('monto_disponible')
-                ->label('💰 Disponible')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->alignCenter(), // Alinea el texto a la derecha
-           
+            ])
+            ->actions([]);
+            
+    }
 
-            TextColumn::make('total_prestado')
-                ->label('💸 Prestado')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->toggleable()
-                ->toggledHiddenByDefault(true)
-                ->alignCenter(), // Alinea el texto a la derecha
-
-           
-
-            TextColumn::make('total_pendiente')
-                ->label('🔴 Cobrar')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->alignCenter(), // Alinea el texto a la derecha
-
-           
-
-            TextColumn::make('total_gastos_salidas')
-                ->label('💸 Gastos')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->toggleable()
-                ->toggledHiddenByDefault(true)
-                ->alignCenter(), // Alinea el texto a la derecha
-
-           
-
-           
-            TextColumn::make('ganancia')
-                ->label('📈 Ganancia')
-                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
-                ->prefix('💲')
-                ->grow(false)
-                ->alignCenter(), // Alinea el texto a la derecha
-
-           
-        ])
-        
-        
-            ->actions([])
-
-
-            ->headerActions([
-                
-            ]);
+    public static function getRelations(): array
+    {
+        return [];
     }
 
     public static function getPages(): array
     {
         return [
             'index' => Pages\ListBaseFinancieras::route('/'),
-            'create' => Pages\CreateBaseFinanciera::route('/create'),
-            'edit' => Pages\EditBaseFinanciera::route('/{record}/edit'),
+           // 'create' => Pages\CreateBaseFinanciera::route('/create'),
+          //  'edit' => Pages\EditBaseFinanciera::route('/{record}/edit'),
         ];
     }
 
@@ -190,3 +78,5 @@ public static function canDelete(Model $record): bool
 }
 
 }
+
+

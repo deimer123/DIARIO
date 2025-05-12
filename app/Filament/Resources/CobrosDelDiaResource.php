@@ -16,7 +16,7 @@ class CobrosDelDiaResource extends Resource
     protected static ?string $model = PlanPago::class; // Se basa en el Plan de Pagos
 
     protected static ?string $navigationIcon = 'heroicon-o-calendar';
-    protected static ?string $navigationLabel = '📅 Cobros del Día';
+    protected static ?string $navigationLabel = 'Cobros del Día';
     protected static ?int $navigationSort = 1; // Posición en el menú
     protected static ?string $pluralLabel = 'Cobros Del Día';
 
@@ -85,10 +85,7 @@ class CobrosDelDiaResource extends Resource
                     ->label('💸 Registrar Pago')
                     ->icon('heroicon-o-banknotes')
                     ->color('success')
-                    ->url(fn (PlanPago $record) => PagoResource::getUrl('create', [
-                        'prestamo_id' => $record->prestamo->id,  // Accede al préstamo desde PlanPago
-                        'cliente_nombre' => str_replace([':', ' '], ['-', '_'], "Cliente: {$record->prestamo->cliente->nombre} - Préstamo ID: {$record->prestamo->id}")
-                    ])),
+                    ->url(fn () => PagoResource::getUrl('index')),
             ])
             ->striped(); // 🔹 Agregar filas con estilo alterno
     }

@@ -45,8 +45,7 @@ class PrestamoResource extends Resource
         if (!auth()->user()->hasRole('Administrador')) {
             $query->where('user_id', auth()->id());
         }
-
-        return $query;
+        return $query->where('estado', 'pendiente');
     }
 
     public static function form(Forms\Form $form): Forms\Form
@@ -246,7 +245,7 @@ class PrestamoResource extends Resource
         return $table
 
         ->striped() // Alterna colores en las filas
-        ->paginated(false) // ✅ Desactiva la paginación
+       // ->paginated(false) // ✅ Desactiva la paginación
         
         
 
@@ -258,10 +257,14 @@ class PrestamoResource extends Resource
         "🧑‍💼 {$record->cliente->nombre} | #️⃣ {$record->id}"
     )
     ->searchable(query: function (Builder $query, string $search) {
-        return $query->whereHas('cliente', function ($query) use ($search) {
-            $query->where('nombre', 'like', "%{$search}%"); // 🔍 Busca solo por el nombre del cliente
-        });
+        return $query
+            ->soloPendientes() // 👈 mismo scope
+            ->whereHas('cliente', function ($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%");
+            });
     }),
+    
+    
     
 
     Tables\Columns\TextColumn::make('user.name')
@@ -335,7 +338,7 @@ Tables\Columns\TextColumn::make('cuotas_pagadas')
                 
         ])
             ->filters([
-                //
+                
             ])
             
 
@@ -345,9 +348,13 @@ Tables\Columns\TextColumn::make('cuotas_pagadas')
             ->actions([
 
               //  Tables\Actions\ViewAction::make(), // 👀 Permitir solo ver detalles
-                Tables\Actions\Action::make('Ver Plan de Pagos')
+                Tables\Actions\Action::make('Cuotas')
         ->icon('heroicon-o-calendar')
         ->url(fn (Prestamo $record) => PlanPagoResource::getUrl('index', ['prestamo_id' => $record->id])),
+        Tables\Actions\Action::make('Pagos')
+        ->icon('heroicon-o-currency-dollar')
+        ->color('danger') // Esto lo pone en rojo
+        ->url(fn (Prestamo $record) => PagoResource::getUrl('list', ['prestamo_id' => $record->id])),
         
         
        // ->openUrlInNewTab(), // Opcional: abre la página en una nueva pestaña

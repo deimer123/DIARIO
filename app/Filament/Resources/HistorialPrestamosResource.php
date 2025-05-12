@@ -44,6 +44,7 @@ class HistorialPrestamosResource extends Resource
         ->columns([
             Tables\Columns\TextColumn::make('id')
                 ->label('📌 ID Préstamo')
+                ->url(fn ($record) => PrestamoResource::getUrl('view', ['record' => $record]))
                 ->prefix('💳 ')
                 ->grow(false)
                 ->alignCenter(),
@@ -111,6 +112,14 @@ class HistorialPrestamosResource extends Resource
             //
             ->actions([
                 Tables\Actions\EditAction::make()->label('✏️ Editar'),
+                Tables\Actions\Action::make('Cuotas')
+        ->icon('heroicon-o-calendar')
+        ->url(fn (Prestamo $record) => PlanPagoResource::getUrl('index', ['prestamo_id' => $record->id])),
+        Tables\Actions\Action::make('Pagos')
+        ->icon('heroicon-o-currency-dollar')
+        ->color('danger') // Esto lo pone en rojo
+        ->url(fn (Prestamo $record) => PagoResource::getUrl('list', ['prestamo_id' => $record->id])),
+        
             ]);
     }
 
@@ -123,6 +132,7 @@ class HistorialPrestamosResource extends Resource
     {
         return [
             'index' => ListHistorialPrestamos::route('/'),
+            
         ];
     }
 }

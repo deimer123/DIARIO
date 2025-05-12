@@ -8,6 +8,9 @@ class CustomDashboard extends BaseDashboard
 {
     protected function getHeaderWidgets(): array
     {
-        return []; // Esto elimina todas las tarjetas del Dashboard
+        return [
+            // Aquí puedes agregar widgets tipo resumen o gráficas si los tienes
+            // \App\Filament\Widgets\ResumenDiarioWidget::class,
+        ];
     }
 }

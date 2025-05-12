@@ -111,6 +111,7 @@ class MovimientoFinancieroResource extends Resource
 
                 TextColumn::make('monto')
                 ->label('💰 Monto')
+                ->formatStateUsing(fn ($state) => number_format($state, 0, ',', '.')) // Formato con separadores
                 ->grow(false)
                 ->alignCenter()
                 ->prefix('💲'),

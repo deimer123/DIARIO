@@ -32,6 +32,12 @@ class AppServiceProvider extends ServiceProvider
         Filament::registerStyles([
             asset('css/custom.css'), // Asegúrate de que el archivo esté en `public/css/`
         ]);
+
+        Filament::serving(function () {
+            Filament::registerWidgets([
+                PrestamosEnRango::class,
+            ]);
+        });
     }
 }
 
@@ -79,7 +85,7 @@ class AdminPanelProvider extends PanelProvider
             ->pages($this->getPages()) // ⬅ Aquí se usa la función `getPages()`
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                Widgets\AccountWidget::class,
+              //  Widgets\AccountWidget::class,
                 // Widgets\FilamentInfoWidget::class, // ⬅ Opción: puedes comentar esto para quitar la tarjeta de info
             ])
             ->middleware([
@@ -104,7 +110,7 @@ class AdminPanelProvider extends PanelProvider
     protected function getPages(): array
     {
         return [
-            \App\Filament\Pages\CustomDashboard::class, // Agrega tu dashboard personalizado
+          \App\Filament\Pages\CustomDashboard::class, // Agrega tu dashboard personalizado
         ];
     }
 }

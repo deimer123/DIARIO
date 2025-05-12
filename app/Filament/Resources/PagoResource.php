@@ -143,12 +143,20 @@ class PagoResource extends Resource
         ]);
 }
 
-public static function table(Table $table): Table
+
+public static function table(Tables\Table $table): Tables\Table
 {
     return $table
-    ->striped() // Alterna colores en las filas
-        ->paginated(false) // ✅ Desactiva la paginación
-    ->query(fn (Builder $query) => static::getEloquentQuery($query))
+        ->paginated(false) // ✅ Desactiva la paginación (opcional)
+        ->query(function () {
+            $query = Pago::query(); // Asegúrate de importar el modelo Pago
+        
+            if (request()->has('prestamo_id')) {
+                $query->where('prestamo_id', request()->query('prestamo_id'));
+            }
+        
+            return $query;
+        })
         ->columns([
             Tables\Columns\TextColumn::make('prestamo.cliente.nombre')
                 ->label('📌 Cliente')
@@ -170,8 +178,8 @@ public static function table(Table $table): Table
                 ->label('📜 ID Préstamo')
                 ->prefix('#️⃣')
                 ->grow(false)
-                ->toggleable()
-                ->toggledHiddenByDefault(true)
+               // ->toggleable()
+               // ->toggledHiddenByDefault(true)
                 ->alignCenter(),
 
             Tables\Columns\TextColumn::make('monto')
@@ -186,23 +194,23 @@ public static function table(Table $table): Table
                 ->prefix('📅 ')
                 ->grow(false)
                 ->alignCenter()
-                ->toggleable()
-                ->toggledHiddenByDefault(true)
                 ->formatStateUsing(fn ($state) => Carbon::parse($state)->translatedFormat('d \d\e F, Y')),
                 
 
             
         ])
             ->filters([
-                //
+                Tables\Filters\Filter::make('prestamo_id')
+                ->query(fn ($query) => request('prestamo_id') ? $query->where('prestamo_id', request('prestamo_id')) : $query),
+
             ])
-            ->actions([ ])
-            ->headerActions([
+            ->actions([ ]);
+         //   ->headerActions([
                 
-                \Filament\Tables\Actions\CreateAction::make()
-                    ->label('Crear Pago') // 🔹 Cambia el nombre del botón
-                    ->color('success') // 🔹 Puedes cambiar el color si lo deseas
-            ]);
+         //       \Filament\Tables\Actions\CreateAction::make()
+         //           ->label('Crear Pago') // 🔹 Cambia el nombre del botón
+            //        ->color('success') // 🔹 Puedes cambiar el color si lo deseas
+         //   ]);
     }
 
     public static function getRelations(): array
@@ -215,8 +223,8 @@ public static function table(Table $table): Table
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListPagos::route('/'),
-            'create' => Pages\CreatePago::route('/create'),
+          'list' => Pages\ListPagos::route('/'),
+            'index' => Pages\CreatePago::route('/create'),
            // 'edit' => Pages\EditPago::route('/{record}/edit'),
         ];
     }

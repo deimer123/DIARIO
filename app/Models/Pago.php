@@ -36,25 +36,35 @@ public function cliente()
         $prestamo = $pago->prestamo;
         $montoPendiente = $pago->monto;
 
-        // Obtener cuotas pendientes ordenadas por fecha más próxima
-        $cuotasPendientes = $prestamo->planPagos()->where('estado', 'Pendiente')->orderBy('fecha')->get();
+        // 1️⃣ Obtener el total pagado del préstamo
+$totalPagado = $prestamo->pagos()->sum('monto'); 
 
-        foreach ($cuotasPendientes as $cuota) {
-            if ($montoPendiente <= 0) {
-                break;
-            }
+// 2️⃣ Obtener todas las cuotas ordenadas por fecha
+$cuotas = $prestamo->planPagos()->orderBy('fecha')->get();
 
-            // Si el pago cubre toda la cuota
-            if ($montoPendiente >= $prestamo->cuota_diaria) {
-                $montoPendiente -= $prestamo->cuota_diaria;
-                $cuota->estado = 'Pagado';
-            } else {
-                // Si el pago solo cubre una parte de la cuota
-                $cuota->estado = 'Pendiente'; // No marcarla como pagada completamente
-            }
+// 3️⃣ Calcular cuántas cuotas se pueden cubrir con el total pagado
+$cuotasCubiertas = intval($totalPagado / $prestamo->cuota_diaria);
 
-            $cuota->save();
-        }
+// 4️⃣ Actualizar el estado de las cuotas según el total pagado
+foreach ($cuotas as $index => $cuota) {
+    if ($index < $cuotasCubiertas) {
+        $cuota->estado = 'Pagado';
+    } else {
+        $cuota->estado = 'Pendiente';
+    }
+    $cuota->save();
+}
+
+// 5️⃣ Verificar si todas las cuotas han sido pagadas
+$totalCuotas = $cuotas->count();
+if ($cuotasCubiertas >= $totalCuotas) {
+    // Si se han cubierto todas las cuotas, marcar el préstamo como pagado
+    $prestamo->update(['estado' => 'Pagado']);
+}
+
+
+       
+
 
         // Descontar el monto del saldo restante en el préstamo
         $prestamo->saldo_restante -= $pago->monto;
