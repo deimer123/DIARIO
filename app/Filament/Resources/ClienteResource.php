@@ -73,11 +73,12 @@ class ClienteResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('foto')
                 ->label('🎥 Foto')
-                ->getStateUsing(fn ($record) => Storage::url($record->foto)) // ✅ Evita duplicar la ruta
-                ->url(fn ($record) => Storage::url($record->foto)) // ✅ Evita duplicar la ruta
+                ->disk('public') // <- esto es CLAVE si usas storage/app/public
                 ->circular()
                 ->size(40)
-                ->alignCenter(),
+                ->alignCenter()
+                ->defaultImageUrl(url('/storage/default.png')), // opcional
+
                 
 
             // Opcional: muestra imágenes redondas
