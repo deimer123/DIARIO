@@ -10,6 +10,7 @@ use Filament\Tables;
 use Filament\Tables\Actions\Action;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class CobrosDelDiaResource extends Resource
 {
@@ -21,20 +22,19 @@ class CobrosDelDiaResource extends Resource
     protected static ?string $pluralLabel = 'Cobros Del Día';
 
     public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->whereDate('fecha', Carbon::today()) // Filtra las cuotas con fecha de hoy
-            ->where('estado', 'Pendiente') // Solo muestra las pendientes
-            ->with('prestamo.cliente') // Relaciona el préstamo y cliente
-            ->whereHas('prestamo', function ($query) {
-                $query->where('user_id', auth()->id()); // ✅ Filtrar por el creador del préstamo
-            });
-            
-           // ->with(['cobrador']);
-
-
-           
-    }
+{
+    return parent::getEloquentQuery()
+        ->whereDate('fecha', Carbon::today()) // Filtrar por hoy
+        ->where('estado', 'Pendiente')        // Solo cuotas pendientes
+        ->with('prestamo.cliente')
+        ->whereHas('prestamo', function ($query) {
+            $query->where('user_id', auth()->id());
+        })
+        // 🔥 Aquí se excluyen los que ya tienen pagos hoy
+        ->whereDoesntHave('prestamo.pagos', function ($query) {
+            $query->whereDate('fecha_pago', Carbon::today());
+        });
+}
 
     public static function table(Tables\Table $table): Tables\Table
     {
