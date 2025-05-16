@@ -9,6 +9,10 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
 use App\Filament\Resources\PagosDelDiaResource\Pages;
+use Illuminate\Database\Eloquent\Model;
+use Filament\Resources\Pages\EditRecord;
+use Filament\Tables\Actions\Action;
+use App\Filament\Resources\PagoResource;
 
 class PagosDelDiaResource extends Resource
 {
@@ -20,8 +24,19 @@ class PagosDelDiaResource extends Resource
     protected static ?string $slug = 'pagos-del-dia';
 
     public static function canCreate(): bool { return false; }
-    public static function canEdit($record): bool { return false; }
-    public static function canDelete($record): bool { return false; }
+    //public static function canEdit($record): bool { return false; }
+   // public static function canDelete($record): bool { return false; }
+
+
+    
+public static function canEdit(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede editar
+}
+public static function canDelete(Model $record): bool
+{
+    return auth()->user()->hasRole('Administrador'); // Solo admin puede eliminar
+}
 
     public static function table(Table $table): Table
     {
@@ -62,12 +77,11 @@ class PagosDelDiaResource extends Resource
                     ->color('gray'),
             ])
             ->actions([
-              //  Tables\Actions\Action::make('Registrar Pago')
-                  //  ->label('Registrar Pago')
-                 //   ->icon('heroicon-o-banknotes')
-                  //  ->color('success')
-                  //  ->url(fn ($record) => \App\Filament\Resources\PagoResource::getUrl('create', ['prestamo_id' => $record->prestamo_id]))
-                //    ->openUrlInNewTab(),
+             Action::make('editarPago')
+                ->label('Editar')
+                ->icon('heroicon-o-pencil-square')
+                ->url(fn (Model $record) => PagoResource::getUrl('edit', ['record' => $record])),
+                //->openUrlInNewTab(false), // true si quieres que se abra en otra pestaña
             ])
             ->emptyStateHeading('🫤 Sin Pagos Hoy')
             ->emptyStateDescription('Aún no se han realizado pagos en esta fecha.')
@@ -79,6 +93,7 @@ class PagosDelDiaResource extends Resource
     {
         return [
             'index' => Pages\ListPagosDelDia::route('/'),
+            // 'edit' => Pages\EditPagosDelDia::route('/{record}/edit'),
         ];
     }
 }

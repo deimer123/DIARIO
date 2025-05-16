@@ -83,6 +83,82 @@ if ($cuotasCubiertas >= $totalCuotas) {
             // 🔥 **Actualizar la Base Financiera con el tipo 'pago'**
             BaseFinanciera::actualizarBase($pago->monto, 'pago');
     });
+
+    static::deleted(function ($pago) {
+    $prestamo = $pago->prestamo;
+
+    // Revertir el monto
+    $prestamo->saldo_restante += $pago->monto;
+    $prestamo->saldo_pagado -= $pago->monto;
+
+    // Asegurarse de que no quede en negativo
+    if ($prestamo->saldo_pagado < 0) {
+        $prestamo->saldo_pagado = 0;
+    }
+
+    // Recalcular el estado del préstamo
+    $prestamo->estado = 'Pendiente';
+
+    // Recalcular el estado de las cuotas
+    $totalPagado = $prestamo->pagos()->sum('monto') - $pago->monto; // Restamos el que se borró
+    $cuotas = $prestamo->planPagos()->orderBy('fecha')->get();
+    $cuotasCubiertas = intval($totalPagado / $prestamo->cuota_diaria);
+
+    foreach ($cuotas as $index => $cuota) {
+        $cuota->estado = ($index < $cuotasCubiertas) ? 'Pagado' : 'Pendiente';
+        $cuota->save();
+    }
+
+    $prestamo->save();
+
+    Log::info("⛔️ Pago eliminado. Nuevo saldo restante: {$prestamo->saldo_restante}");
+});
+static::updated(function ($pago) {
+    $prestamo = $pago->prestamo;
+
+    // 🧠 Recuperamos el monto original antes de la edición
+    $originalMonto = $pago->getOriginal('monto');
+
+    // 🧮 Ajustar el saldo del préstamo
+    $prestamo->saldo_restante += $originalMonto; // Revertir el anterior
+    $prestamo->saldo_pagado -= $originalMonto;
+
+    $prestamo->saldo_restante -= $pago->monto; // Aplicar el nuevo
+    $prestamo->saldo_pagado += $pago->monto;
+
+    // Limitar por seguridad
+    if ($prestamo->saldo_restante < 0) {
+        $prestamo->saldo_restante = 0;
+    }
+    if ($prestamo->saldo_pagado < 0) {
+        $prestamo->saldo_pagado = 0;
+    }
+
+    // Recalcular cuotas
+    $totalPagado = $prestamo->pagos()->sum('monto'); // Ya incluye el monto actualizado
+    $cuotas = $prestamo->planPagos()->orderBy('fecha')->get();
+    $cuotasCubiertas = intval($totalPagado / $prestamo->cuota_diaria);
+
+    foreach ($cuotas as $index => $cuota) {
+        $cuota->estado = ($index < $cuotasCubiertas) ? 'Pagado' : 'Pendiente';
+        $cuota->save();
+    }
+
+    // Estado del préstamo
+    $totalCuotas = $cuotas->count();
+    if ($cuotasCubiertas >= $totalCuotas || $prestamo->saldo_restante <= 0) {
+        $prestamo->estado = 'Pagado';
+        $prestamo->saldo_restante = 0;
+    } else {
+        $prestamo->estado = 'Pendiente';
+    }
+
+    $prestamo->save();
+
+    Log::info("✏️ Pago editado. Nuevo saldo: {$prestamo->saldo_restante}");
+});
+
+
 }
 
 

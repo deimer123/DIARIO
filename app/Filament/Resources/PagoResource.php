@@ -114,24 +114,45 @@ class PagoResource extends Resource
 
             // Monto a pagar
             TextInput::make('monto')
-                ->label('Monto a Pagar')
-                ->numeric()
-                ->required()
-                ->prefix('💲')
-                ->reactive()
-                ->afterStateUpdated(function (callable $get, callable $set, $state) {
-                    $prestamo = Prestamo::find($get('prestamo_id'));
+    ->label('Monto a Pagar')
+    ->required()
+    ->numeric()
+    ->reactive()
 
-                    if ($prestamo && $state > $prestamo->saldo_restante) {
-                        $set('monto', $prestamo->saldo_restante); // Ajustar el monto al saldo restante
-                        Notification::make()
-                            ->title('Error')
-                            ->body('No puede pagar más del saldo restante.')
-                            ->danger()
-                            ->send();
-                    }
-                })->placeholder('Digite el monto a pagar')
-                ->suffix(fn ($state) => number_format((float) str_replace('.', '', $state), 0, ',', '.')),
+    // Mostrar en formato amigable visual
+    ->suffix(fn ($state) => is_numeric($state)
+        ? number_format($state, 0, ',', '.') . ' 💲'
+        : null
+    )
+
+    // Limpia ceros innecesarios al cargar
+    ->afterStateHydrated(function ($component, $state) {
+        if (is_numeric($state)) {
+            $component->state(rtrim(rtrim((string) $state, '0'), '.'));
+        }
+    })
+
+    // Validación en tiempo real contra saldo restante
+    ->afterStateUpdated(function (callable $get, callable $set, $state) {
+        $prestamoId = $get('prestamo_id');
+        if (!$prestamoId || !is_numeric($state)) return;
+
+        $prestamo = \App\Models\Prestamo::find($prestamoId);
+        if (!$prestamo) return;
+
+        $saldoRestante = $prestamo->saldo_restante;
+
+        if ($state > $saldoRestante) {
+            $set('monto', $saldoRestante); // Corregimos el valor al máximo permitido
+            \Filament\Notifications\Notification::make()
+                ->title('Error')
+                ->body("El monto no puede ser mayor al saldo restante: " . number_format($saldoRestante, 0, ',', '.'))
+                ->danger()
+                ->send();
+        }
+    }),
+
+
 
             DatePicker::make('fecha_pago')
                 ->label('Fecha del Pago')
@@ -225,7 +246,7 @@ public static function table(Tables\Table $table): Tables\Table
         return [
           'list' => Pages\ListPagos::route('/'),
             'index' => Pages\CreatePago::route('/create'),
-           // 'edit' => Pages\EditPago::route('/{record}/edit'),
+           'edit' => Pages\EditPago::route('/{record}/edit'),
         ];
     }
 
